@@ -1,0 +1,36 @@
+name: Unity WebGL
+on:
+  push:
+    branches: [Master]
+    paths: ['unity/**']
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: {lfs: true}
+      - uses: actions/cache@v3
+        with:
+          path: unity/Library
+          key: lib-${{ hashFiles('unity/Assets/**','unity/Packages/**','unity/ProjectSettings/**') }}
+      - uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          targetPlatform: WebGL
+          projectPath: unity
+      - uses: actions/upload-pages-artifact@v3
+        with: {path: build/WebGL/WebGL}
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions: {pages: write, id-token: write}
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/configure-pages@v5
+      - uses: actions/deploy-pages@v4
+        id: deploy
