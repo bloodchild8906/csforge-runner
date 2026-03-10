@@ -1,0 +1,23 @@
+name: Unity Check
+on:
+  push:
+    branches: [Master]
+    paths: ['unity/Assets/Scripts/*.cs']
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    permissions: {contents: write}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with: {dotnet-version: '8.0.x'}
+      - run: |
+          mkdir -p /tmp/uc && cp unity/Assets/Scripts/*.cs /tmp/uc/ 2>/dev/null||true
+          cd /tmp/uc && dotnet new classlib --force -o . -q && dotnet restore -q
+          mkdir -p $GITHUB_WORKSPACE/output
+          dotnet build 2>&1 | tee $GITHUB_WORKSPACE/output/result.txt
+          echo "---EXIT:$?" >> $GITHUB_WORKSPACE/output/result.txt
+      - run: |
+          git config user.email "actions@github.com" && git config user.name "github-actions"
+          git add output/result.txt
+          git diff --cached --quiet || (git commit -m "ci: unity [skip ci]" && git push)
