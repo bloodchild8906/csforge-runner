@@ -1,0 +1,23 @@
+name: C# Runner
+on:
+  push:
+    branches: [Master]
+    paths: ['src/Program.cs']
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    permissions: {contents: write}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with: {dotnet-version: '8.0.x'}
+      - run: |
+          mkdir -p /tmp/app && cp src/Program.cs /tmp/app/
+          cd /tmp/app && dotnet new console --force -o . -q && dotnet restore -q
+          mkdir -p $GITHUB_WORKSPACE/output
+          dotnet run 2>&1 | tee $GITHUB_WORKSPACE/output/result.txt || true
+          echo "---EXIT:$?" >> $GITHUB_WORKSPACE/output/result.txt
+      - run: |
+          git config user.email "actions@github.com" && git config user.name "github-actions"
+          git add output/result.txt
+          git diff --cached --quiet || (git commit -m "ci: output [skip ci]" && git push)
